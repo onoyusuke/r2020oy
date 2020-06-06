@@ -1,0 +1,145 @@
+---
+title: "欠測データの処理(1)：単一代入法と多重代入法 "
+author: "小野裕介"
+date: "2018年5月17日"
+output: word_document
+---
+
+＊今回は次のようなデータを扱う(高橋ほか2016)。freedomの値は100が最も民主的とする。gdpの単位は1000ドルである。
+```{r message=FALSE}
+country<-c("コンゴ民主共和国", "ジブチ", "アンゴラ", "インドネシア", "中国", "チリ", "ラトビア", "ギリシャ", "日本", "英国")
+gdp<-c(0.8,3.2,7,11.1,14.3,23.5,24.7,26.4,38.1,41.5)
+freedomTrue<-c(25, 28, 24, 65, 16, 95, 86, 83, 96, 95)
+data.frame(country,gdp,freedomTrue)
+plot(gdp, freedomTrue)
+```
+
+＊このデータのfreedomの平均値は以下のように計算できる。
+```{r message=FALSE}
+mean(freedomTrue)
+```
+
+### 欠測があるデータの例
+
+＊上で示したデータに対して、gdpが中央値以下の場合に50%の確率でfreedomの値が欠測するとしたシミュレーションの結果が以下である。NAが欠測を示す(not available)。
+
+```{r message=FALSE}
+freedom<-c(NA, NA, 24, NA, 16, 95, 86, 83, 96, 95)
+data.frame( country, gdp, freedom)
+plot(gdp, freedom)
+```
+
+＊このままでは平均値の計算はできない。
+
+```{r message=FALSE}
+mean(freedom)
+```
+### リストワイズ除去によるバイアス
+
+＊Rでは、na.rm=TRUEとすると、リストワイズ(listwise)除去、つまりリストごとの除去を行う。先に述べたように、ここではgdpが低い国のほうが欠測しやすいという設定で欠測させているので、リストワイズ除去すると、計算される平均値は過大になる。
+
+```{r message=FALSE}
+mean(freedom, na.rm=TRUE)
+```
+
+### 単一代入法
+ここでは、予測値によって欠測値を置き換える確定的単一代入法の例を示す。単一代入法は、(1)回帰分析を応用する方法、(2)マッチングによる方法という大きく二つに分けられる(高井ほか2016)。今回は、回帰分析を応用する方法を紹介する。
+
+#### 回帰代入法
+＊freedomを非説明変数、gdpを説明変数とする回帰式をもとめる。
+```{r message=FALSE}
+kaiki <- lm(freedom~gdp)
+kaiki
+```
+
+＊得られた回帰式を用いて代入
+```{r message=FALSE}
+kaikifreedom <- freedom
+
+for (i in (1:length(freedom))[is.na(freedom)]){
+  kaikifreedom[i] <- kaiki$coefficients[1]+kaiki$coefficients[2]*gdp[i]
+}
+kaikifreedom
+data.frame(country, kaikifreedom, gdp)
+plot(gdp, kaikifreedom)
+abline(kaiki)
+```
+
+＊平均を計算
+```{r message=FALSE}
+mean(kaikifreedom)
+```
+
+### 多重代入法
+
+＊多重代入法では、複数の値(M個)で欠測値を置き換える。そうすることで、欠測値が未知であるという不確実性を表すことができる。
+＊今回はM=3とした。すなわち、1つの欠測値に対して3個の値を計算する。
+
+#### EMBアルゴリズム
+＊以下ではEMBアルゴリズムを利用した多重代入法の例を示す。EMBとは、Expectation-Maximization with Bootstrappingの略である。多重代入法のアルゴリズムには、その他には、マルコフ連鎖モンテカルロ法(MCMC: Markov Chain Monte Carlo)に基づくDA法(DA: Data Augmenteation データ拡大)などがある(高橋ほか2017)。
+
+＊パッケージは[Amelia](https://cran.r-project.org/web/packages/Amelia/index.html)を使用する。install.packages("Amelia", dependencies = TRUE)
+
+```{r message=FALSE}
+library(Amelia)
+df1<-data.frame(gdp, freedom)
+M<-3
+set.seed(1)
+a.out<-amelia(df1, m=M)
+```
+
+#### 多重代入済みデータ
+
+＊EMBアルゴリズムで代入した3つのデータは以下のようになる。
+```{r message=FALSE}
+a.out$imputations$imp1
+plot(a.out$imputations$imp1$gdp,  a.out$imputations$imp1$freedom)
+a.out$imputations$imp2
+plot(a.out$imputations$imp2$gdp,  a.out$imputations$imp2$freedom)
+a.out$imputations$imp3
+plot(a.out$imputations$imp3$gdp,  a.out$imputations$imp3$freedom)
+```
+
+#### 分析結果の統合
+＊分析結果の統合は、「Rubin(1987)のrule」と呼ばれる方法にしたがう(高橋ほか2016: 47)。平均に関しては、代入済みの各データで平均を計算し(m個分)、さらにその平均をもとめるだけである。
+
+```{r message=FALSE}
+Q<-rep(NA,M)
+for(i in 1:M){
+Q[i]<-mean(a.out$imputations[i][[1]]$freedom)
+}
+Q
+mean(Q)
+```
+
+＊今回は欠測のあるデータセットの平均値をもとめただけだったが、今回参照した高橋ほか(2017)や高井ほか(2016)では、多重代入法を用いたt検定や重回帰分析や経時測定データの分析についても、紹介されている。
+
+
+### 欠測データに関する指針
+
+＊2010年に、全米学術会議National Research Council (NRC)から、「臨床試験における欠測の防止と欠測データの取り扱い(The Prevention and Treatment of Missing Data in Clinical Trials)」という調査報告書が出版された。
+
+＊NRCレポートの作成者による解説論文が[Little et al. (2012)](https://www.nejm.org/doi/full/10.1056/NEJMsr1203730)である。
+
+＊NRCレポートの主要な推奨事項は、高井ほか(2016）の付録A4にまとめられている。
+
+### 実際の論文での処理の例
+
+＊[Maddocks (2016)](https://www.thelancet.com/pdfs/journals/lanres/PIIS2213-2600(15)00503-2.pdf)より引用
+
+The  prespecified  primary  analysis  was  by  intention  to  treat. Missing data were explored and reported according to  cause.
+ Missing  data  were  handled  by  a  multiple  imputation approach (20 datasets), using a Monte Carlo  Markov   chain   method   and   assuming   a   multivariate normal  distribution.
+Missing  outcome  imputation  was based on sex, baseline MRC dyspnoea scale, and baseline QMVC   as   moderators   of   6MWT   performance. 
+The multiple  imputation  was  implemented  with  SAS  Proc MI  and  the  results  of  mean  change  comparison  were combined with SAS Proc MIanalyse.
+
+＊参考：SASによる欠損値処理(高井ほか2016)
+
+- SAS  Proc MI：複数の擬似完全データセットを作成する代入ステップを実施する。
+- SAS Proc MIanalyse：通常のプロシージャで実施した解析ステップでの推定値などを読み込むことで統合ステップを実施し、Rubinのルールによる推定値や標準誤差の計算、検定などを実行する。
+
+### 参考文献
+- 高橋将宣・渡辺美智子(2017)『欠測データ処理：Rによる単一代入法と多重代入法』、共立出版、2017.
+- 高井啓二・星野崇宏・野間久史(2016)『欠測データの統計科学：医学と社会科学への応用』, 岩波書店, 2016.
+- [Little et al. (2012)](https://www.nejm.org/doi/full/10.1056/NEJMsr1203730) The Prevention and Treatment of Missing Data in Clinical Trials. N Engl J Med 2012; 367:1355-1360
+- [Maddocks (2016)](https://www.thelancet.com/pdfs/journals/lanres/PIIS2213-2600(15)00503-2.pdf)Neuromuscular electrical stimulation to improve exercise capacity in patients with severe COPD: a randomised double-blind, placebo-controlled trialLancet Respir Med 2016; 4: 27–36.
+- [Amelia: A Program for Missing Data](https://cran.r-project.org/web/packages/Amelia/index.html)
