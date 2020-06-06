@@ -1,0 +1,76 @@
+---
+title: "R勉強会：シングルケース・デザインのランダマイゼーション検定"
+author: "小野裕介"
+date: "2017年3月23日"
+output: html_document
+---
+＊CRANのSCRT: Single-Case Randomization Testsというパッケージを使う。
+
+```{r}
+library(SCRT)
+```
+
+＊ここでは、24期にわたるABABデザインで、A,Bは最低でも4期から成り立つように実施することを考える。そのような条件をみたすやり方(割り当て方)の数はquantity関数で計算できる。
+```{r}
+ quantity(design = "ABAB", MT = 24, limit = 4)
+```
+
+＊以下のようにすれば、165個全部を列挙することもできる。ただし、長くなるのでここでは実施していない。
+
+ assignments(design = "ABAB", MT = 24, limit = 4)
+
+＊selectdesign関数を使えば、165個の条件を満たすやり方(割り当て方)のうちの1つを無作為に抽出することができる。
+```{r}
+selectdesign(design = "ABAB", MT = 24, limit = 4)
+```
+
+＊ここでは、無作為に選んだ結果、AAAAAABBBBBBAAAAAABBBBBという各フェイズが6期からなる割り当て方で実施することになり、以下のような結果(ABAB)が得られたとする。
+```{r}
+data(ABAB)
+graph1(design = "ABAB", data = ABAB) 
+```
+
+＊分析のためにはデータ(ABAB)は以下のような形式になっている必要がある。
+```{r}
+head(ABAB)
+```
+
+＊フェイズA1, A2での結果の合計と、フェイズB1, B2での結果の合計の差(AA-BB)を計算すると以下のようになる。
+
+```{r}
+observed(design="ABAB", statistic="AA-BB", data=ABAB)
+```
+
+＊その他の割り当て方の場合も含めて、同様にAA-BBを計算すると以下のようになる。
+```{r}
+bunpu <- distribution.systematic(design="ABAB", statistic="AA-BB",save="no",limit=4,data=ABAB)
+bunpu
+```
+
+＊上で計算した4は4番目に高い値で、上位2.42%に位置する値であることがわかる。
+```{r}
+4/165
+```
+
+＊ヒストグラムで表示すると以下のようになる。
+```{r}
+hist(bunpu)
+```
+
+＊介入に全く効果がないと仮定してみる(帰無仮説)。この仮定のもとでは、上の分布は、A, Bの割り当て方から生じたものである。そして、今回生じたAA-BBが4という値も、A, Bの割り当て方から生じた偶然によるものということになる。
+
+＊検定のためにp値を計算すると、上で計算したように0.0242になることが確認できる。
+```{r}
+pvalue.systematic(design="ABAB",statistic ="AA-BB",save="no",limit=4,data=ABAB) 
+```
+
+### 参考文献
+- 島宗 理
+
+再考シングルケースデザイン（その12）：ランダマイゼーション検定にRのパッケージを使う
+
+http://www.hosei-shinri.jp/simamune/cat38/
+
+- SCRT: Single-Case Randomization Tests
+
+https://cran.r-project.org/package=SCRT
