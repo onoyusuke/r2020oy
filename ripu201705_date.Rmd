@@ -1,0 +1,55 @@
+---
+title: "R勉強会@ipu：日付データのあつかいについて"
+author: "小野裕介"
+date: "2017年6月15日"
+output: word_document
+---
+＊Hadleyと弟子のGarrett作のlubridateを使う。
+```{r}
+library(lubridate)
+```
+
+＊形式は柔軟
+```{r}
+mtg <- ymd(20170630, tz="Asia/Tokyo")
+
+mtg
+
+mtg <- dmy("30/6/2017")
+
+mtg
+```
+
+＊情報を取り出す
+```{r}
+day(mtg)
+month(mtg)
+month(mtg, label=TRUE)
+year(mtg)
+wday(mtg, label=TRUE)
+wday(mtg)
+week(mtg)
+yday(mtg)
+```
+
+＊演算
+```{r}
+nextmtg <- mtg + days(50)
+nextmtg
+wday(nextmtg, label=TRUE)
+```
+
+＊邦文SlideShare(lubridateパッケージ入門)
+https://www.slideshare.net/kashitan/20150905-tokyo-r50-52444556
+
+＊作者である神Hadleyと高弟Garrettによる論文。
+Dates and Times Made Easy with lubridate
+https://www.jstatsoft.org/article/view/v040i03
+
+＊ Garrett Grolemundによる紹介
+https://www.r-statistics.com/2012/03/do-more-with-dates-and-times-in-r-with-lubridate-1-1-0/
+
+＊GitHubの原典ページでの簡単な紹介
+https://github.com/tidyverse/lubridate
+
+

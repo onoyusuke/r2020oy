@@ -1,0 +1,101 @@
+---
+title: "R勉強会：決定樹について"
+author: "小野裕介"
+date: "2016年 2月 14日"
+output: html_document
+---
+
+## 分析するデータ
+データを読み込む。タイタニック号の乗客に関するデータである。
+```{r}
+dftitanic <- read.csv("titanic.csv", header=T)
+head(dftitanic)
+str(dftitanic)
+```
+
+見やすさのために$Survivedの"Yes"と"No”の順番を入れ替えておく。
+```{r}
+dftitanic$Survived = factor(dftitanic$Survived, c("Yes", "No"))
+str(dftitanic)
+```
+
+## 表による分析
+生死を性別、年齢、等級という属性から考える。
+
+#### 性別
+```{r}
+table(subset(dftitanic, select=c(Sex, Survived)))
+```
+- 女性の生還率は男性に比べて高い。
+
+#### 年齢
+```{r}
+table(subset(dftitanic, select=c(Age, Survived)))
+```
+- 子どもの生還率は大人に比べて高い。
+
+#### 等級
+```{r}
+table(subset(dftitanic, select=c(Class,Survived)))
+```
+- 1等のみ生還が死亡を上回る。
+
+#### 性別・年齢・等級
+```{r}
+table(dftitanic[c("Class", "Survived", "Age", "Sex")])
+```
+
+- 女性の場合、大人も子どもも3等での生還率がその他に比べて低い。
+- 男性の場合、子どもは3等での生還率が1等・2等に比べて歴然と低い(女性と同様の特徴)。一方、大人の場合はそのような特徴は見えにくい。
+
+
+
+## 決定樹分析
+
+rpartというライブラリを用いる。
+```{r}
+library(rpart)
+```
+
+決定樹分析を行い、結果を表示する。
+```{r}
+treetitanic <- rpart(Survived~Class+Age+Sex, data=dftitanic, method="class")
+print(treetitanic)
+```
+
+図示すると以下のようになる。
+```{r}
+plot(treetitanic, uniform=T, branch=0.6, margin=0.15)
+text(treetitanic, use.n=T, pretty=0)
+```
+
+### わかること
+- 生死を分ける第一の要因は性別である。
+- 女性の場合は1級・2級かそれ以外かは生存率に影響を与えているようだが、大人か子どもかは影響していない。
+- 男性の場合は大人か子どもかは生存率に影響している。男性でも子どもの場合には等級が影響する。
+
+## 参考文献
+- 豊田秀樹(編著)(2008)『データマイニング入門』, 東京図書, 2008.
+
+<!---
+## logistics回帰分析
+
+### 交互作用を仮定しない場合
+
+```{r}
+logtitanic <- glm(Survived~Class+Age+Sex, data=dftitanic, family=binomial("logit"))
+summary(logtitanic)
+```
+
+```{r}
+print(exp(coef(logtitanic)))
+```
+
+### 交互作用を仮定する場合
+
+```{r}
+kogologtitanic <- glm(Survived~Class+Age+Sex+Age*Sex, data=dftitanic, family=binomial("logit"))
+summary(kogologtitanic)
+print(exp(coef(kogologtitanic)))
+```
+--->

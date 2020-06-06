@@ -1,0 +1,187 @@
+---
+title: "R勉強会@ipu：サイコロ"
+author: "小野裕介"
+date: "2017年5月1日"
+output: word_document
+---
+### オブジェクト:データはオブジェクトに保存する
+＊オブジェクトを作る
+```{r}
+die <- 1:6
+die
+```
+
+＊使用しているオブジェクト名の確認
+```{r}
+ls()
+```
+＊演算は要素ごとに行われる
+```{r}
+die - 1
+die / 2
+die * die
+```
+### 関数
+＊関数の例
+```{r}
+round(3.1415)
+factorial(3)
+mean(1:6)
+mean(die)
+round(mean(die))
+```
+
+＊argsで関数の引数名を調べる
+```{r}
+args(round)
+```
+
+＊引数を指定してみる
+```{r}
+round(3.1415, digits = 2)
+```
+
+＊引数名を書かないと、引数の順番で値が入力される
+```{r}
+round(3.1415, 2)
+```
+
+### sample関数の使い方：サイコロの振る舞いのシミュレーション
+＊sampleはベクトルxからsize個の要素を返す
+```{r}
+sample(x = 1:4, size =2)
+```
+＊サイコロを振る
+```{r}
+sample(x = die, size =1)
+```
+＊サイコロを２個振る
+```{r}
+sample(x = die, size =2, replace = TRUE)
+```
+＊replaceを指定しないと、同じ値が出なくなってしまう。sample関数は、値が書かれたボールを壺の中から取り出すイメージ。
+```{r}
+sample(x = die, size =2)
+```
+
+＊得られた値をオブジェクトに保存する
+```{r}
+dice <- sample(x = die, size =2, replace = TRUE)
+```
+
+＊保存したオブジェクトを呼び出すだけでは、sample関数は実行されない。保存されているのは値だからである。
+
+```{r}
+dice
+dice
+```
+
+### 独自関数を書く
+＊以下のコードを実行すればサイコロを振り和をもとめることができるが、繰り返し実行する場合には面倒。
+```{r}
+die <- 1:6
+dice <- sample(x = die, size =2, replace = TRUE)
+sum(dice)
+```
+
+＊独自関数として定義する
+```{r}
+roll <- function(){
+ die <- 1:6
+ dice <- sample(x = die, size =2, replace = TRUE)
+ sum(dice) 
+}
+```
+
+＊上で定義した関数を実行してみる
+```{r}
+roll()
+roll()
+```
+
+＊かっこなしで関数名を入力すると内容(「関数の本体」)が表示される
+```{r}
+roll
+```
+
+### 引数
+＊関数に引数をわたすにはfunctionのカッコの中に引数名を指定すればよい。
+```{r}
+roll2 <- function(bones){
+ dice <- sample(x = bones, size =2, replace = TRUE)
+ sum(dice) 
+}
+```
+
+＊argsで確認
+```{r}
+args(roll2)
+```
+
+＊色々な引数を渡してみる
+```{r}
+roll2(bones = 1:4)
+roll2(bones = 1:6)
+```
+
+＊引数に対してデフォルトの値を設定することも可能
+```{r}
+roll2 <- function(bones=1:6){
+ dice <- sample(x = bones, size =2, replace = TRUE)
+ sum(dice) 
+}
+roll2()
+```
+
+＊argsで確認
+```{r}
+args(roll2)
+```
+
+### Rコマンドの反復実行
+＊replicateに回数とコマンドを渡すと反復実行する。
+```{r}
+replicate(3, 1+1)
+```
+
+＊渡すコマンドは自作関数でもよい。
+```{r}
+replicate(10, roll())
+```
+
+
+### 可視化
+＊パッケージをロード
+```{r}
+library(ggplot2)
+```
+＊2つのベクトルが与えられるとqplotは散布図を描く
+```{r}
+x <- c(-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1)
+y <- x^3
+qplot(x, y)
+```
+
+＊1つのベクトルが与えられるとqplotはヒストグラムを描く
+```{r}
+x <- c(1, 2, 2, 2, 3, 3)
+qplot(x, binwidth = 1)
+```
+
+＊2個のサイコロを1万回ふったときの様子をヒストグラムで示す
+```{r}
+rolls <- replicate(10000, roll())
+qplot(rolls, binwidth = 1)
+```
+
+＊ウェイトをかけたサイコロと比較
+```{r}
+roll <- function(){
+ die <- 1:6
+ dice <- sample(x = die, size =2, replace = TRUE, prob = c(1/8, 1/8, 1/8, 1/8, 1/8, 3/8))
+ sum(dice) 
+}
+rolls <- replicate(10000, roll())
+qplot(rolls, binwidth = 1)
+```
+

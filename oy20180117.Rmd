@@ -1,0 +1,120 @@
+---
+title: "無作為抽出のシミュレーション"
+author: "小野裕介"
+date: "2018年1月17日(疫学勉強会)"
+output: word_document
+---
+
+
+＊正規分布する1000000人分のデータがある。これを「母集団」と呼ぶことにする。
+```{r, echo=FALSE}
+nn=1000000
+x <- rnorm(n=nn)
+```
+
+＊母集団のことを知るために、100人分を「無作為抽出」し、その値を観察した。このような集団を「観察対象集団」と呼ぶ。
+```{r, echo=FALSE}
+n=100
+sentaku <- sample(nn,n)
+kansatsu <- x[sentaku]
+```
+
+・この「観察対象集団」の値の分布をヒストグラムで表示してみた。
+```{r, echo=FALSE}
+hist(kansatsu, main="Study population 1 (n=100)")
+```
+・この「観察対象集団」の平均を計算してみた。
+```{r, echo=FALSE}
+mean(kansatsu)
+```
+
+・一部にしか過ぎない「観察対象集団」から全体である「母集団」の様子を推測する試みが、「統計的推定」である。例えば、母集団の平均に関して、「95％信頼区間」と呼ばれるものを計算する。これは、母集団の平均を、幅をもって推測しているものである。
+```{r, echo=FALSE}
+ci <- t.test(kansatsu)$conf.int
+ci
+```
+
+＊今回はたまたま上のような観察対象集団だったが、もちろん別の集団を抽出することもありえる。もう一度やってみたら、以下のようであった。
+
+```{r, echo=FALSE}
+sentaku <- sample(nn,n)
+kansatsu <- x[sentaku]
+hist(kansatsu, main="Study population 2 (n=100)")
+```
+
+・平均
+```{r, echo=FALSE}
+mean(kansatsu)
+```
+
+・「95%信頼区間」
+```{r, echo=FALSE}
+ci <- t.test(kansatsu)$conf.int
+ci
+```
+
+＊以上のように、延々と調べていくと、「観察対象集団」から計算された平均の分布は以下のようになった(10000回ほどやってみた)。
+
+```{r, echo=FALSE}
+nnn <- 10000
+heikin <- numeric(nnn)
+for(i in 1:nnn)
+{
+sentaku <- sample(nn,n)
+heikin[i]=mean(x[sentaku])
+}
+hist(heikin, main="Mean (n=100)")
+```
+
+もちろん、ご覧のように、ある程度ばらついている。このように、観察対象集団の抽出の仕方によって生じるばらつきが、「偶然誤差」である。
+
+＊上では100人分を観察したが、例えば、「観察対象集団」として10人しか抽出しなかった場合にどうなるのかを、同様に調べると結果は以下のようになる。
+```{r, echo=FALSE}
+n=10
+sentaku <- sample(nn,n)
+kansatsu <- x[sentaku]
+hist(kansatsu, main="Study population (n=10)")
+```
+
+・平均
+```{r, echo=FALSE}
+mean(kansatsu)
+```
+
+・「95%信頼区間」
+```{r, echo=FALSE}
+ci <- t.test(kansatsu)$conf.int
+ci
+```
+n=100の場合に比べて幅が広がっていることに注意。観察個数が減ったことによる精度の低下を補うために、幅を広げて対応している。95%の信頼性はそのようにして確保されているのである。
+
+＊「観察対象集団」(n=10)から計算された平均の分布(10000回)
+
+```{r, echo=FALSE}
+n <- 10
+nnn <- 10000
+heikin <- numeric(nnn)
+for(i in 1:nnn)
+{
+sentaku <- sample(nn,n)
+heikin[i]=mean(x[sentaku])
+}
+hist(heikin)
+```
+
+・10人しか観察しないほうが、ばらつきが大きいことは一目瞭然である。
+
+
+
+＊ちなみに、上のように「標本抽出」ではなく、「全数調査」した場合には、以下のようになる。これこそが知りたかった母集団の全容である。
+
+```{r, echo=FALSE}
+hist(x, main="Population")
+```
+
+・平均
+```{r, echo=FALSE}
+mean(x)
+```
+
+・各々の「観察対象集団」に関して、「95%信頼区間」内に「母集団」の平均を含むかどうかを調べると(つまり、推定があたっているかどうかを調べると)、ありうる「観察対象集団」のうちの95%が、その区間内に「母集団」の平均を含む(すなわち、推定が的中する)。逆に、そうなるように作るのが「95%信頼区間」である。例えば、99%信頼区間にしたければ、区間の幅を広げればよい。また、上で見たように、サンプルサイズが減少してばらつきが大きくなった場合にも、区間の幅を広げることで、何とか的中させようとしている。
